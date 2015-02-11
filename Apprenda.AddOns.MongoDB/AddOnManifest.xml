@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<addonManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns="http://schemas.apprenda.com/AddonManifest"
+               name="MongoDB"
+               description="Provides MongoDB databases scoped to a development team."
+               deploymentNotes="This add-on assumes that you already have a MongoDB instace running, configured with authentication, and one admin user.  The admin username and password are needed to create client databases.  The location field should be the host and port of the MongoDB instance.  ex) hostname:12345"
+               developerHelp="When deploying a new MongoDB database you need to specify the credentials you want to use in your app to connect to this database.  These credentials should be passed in using the developerOptions argument in the following format: username=&lt;username&gt;,password=&lt;password&gt;"
+               vendor="Apprenda"
+               author="Chris Dutra"
+               version="3.0-Test"
+               provisioningUsername="ApprendaAdmin"
+               provisioningPassword="m0ng0Pa55"
+               provisioningLocation="10.5.4.106:27277">
+</addonManifest>
