@@ -2,16 +2,30 @@
 using Apprenda.Services.Logging;
 using MongoDB.Driver;
 using System;
-using System.Linq;
 
 namespace Apprenda.AddOns.MongoDB
 {
+    using Apprenda.SaaSGrid.Manifest;
+
+    using global::MongoDB.Bson;
+
     public class MongoDbAddOn : AddonBase
     {
         private static readonly ILogger Logger = LogManager.Instance().GetLogger(typeof(MongoDbAddOn));
 
-        public ProvisionAddOnResult Provision(AddonManifest manifest, string developerOptions)
+        /// <summary>
+        /// Provisions an instance of this add-on.
+        /// </summary>
+        /// <param name="_request">A request object encapsulating all the parameters available to provision an add-on.</param>
+        /// <returns>
+        /// A <see cref="T:Apprenda.SaaSGrid.Addons.ProvisionAddOnResult"/> object containing the results of the operation as well as the data needed to connect to / use the newly provisioned instance.
+        /// </returns>
+        public override ProvisionAddOnResult Provision(AddonProvisionRequest _request)
         {
+            if (_request == null)
+            {
+                throw new ArgumentNullException("_request");
+            }
             // developerOptions is a string of arbitrary arguments used at provisioning time.
             // In this case, we need to know the username and password of the user to be assigned to this DB.
             // The expected format is: username=<username>,password=<password>
@@ -19,72 +33,37 @@ namespace Apprenda.AddOns.MongoDB
             // NOTE: In the real world it may not be the best idea to pass in the username and password.
             //       Instead they could be derived and guaranteed unique from data in the manifest.
             //       However, this illustrates how one might use the developerOptions parameter.
-            string username = null;
-            string password = null;
+
+            var parameters = DeveloperParameters.Parse(_request.DeveloperParameters, _request.Manifest.Properties);
             // since there is no connection data yet, this constructor doesn't make sense. but just throw an empty string for now.
             var result = new ProvisionAddOnResult("", false, "");
-            developerOptions = developerOptions ?? string.Empty; //ensure we handle null developer options
-
-            foreach (var innerPair in developerOptions.Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries).Select(pair => pair.Split("=".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)).Where(innerPair => innerPair.Length >= 2))
-            {
-                switch (innerPair[0])
-                {
-                    case "username":
-                        username = innerPair[1];
-                        break;
-
-                    case "password":
-                        password = innerPair[1];
-                        break;
-                }
-            }
-
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-            {
-                result.EndUserMessage = "The developerOptions parameter must contain the username and password to assign to this developer's MongoDB instance. The correct format is: username=<username>,password=<password>";
-                return result;
-            }
-
             try
             {
-                var server = GetServer(manifest);
-                var databaseName = GetDatabaseName(manifest);
-
-                if (server.DatabaseExists(databaseName))
+                string port;
+                try
                 {
-                    result.EndUserMessage = string.Format("A MongoDB instance with the name '{0}' already exists. Use a different instance alias.", databaseName);
-                    return result;
+                    port = _request.Manifest.Properties.Find(_x => _x.Key.Equals("port")).Value;
                 }
-
-                var database = server.GetDatabase(databaseName);
-                //MongoDatabaseSettings settings = new MongoDatabaseSettings(server, databaseName);
-
-                // creates a new database.
-                //MongoDatabase newDatabase = server.GetDatabase(settings);
-                // adds user to the admin database, thus should give it read/write all over. (probably bad for now but should work)
-                //newDatabase.AddUser(new MongoCredentials(username, password), false);
-
-                //MongoUser user = database.FindUser(username);
-                // MongoDB does not actually create the DB until you put data into it.
-                // So we store the time the DB was created to force creation.
-                //var collection = database.GetCollection<ProvisioningData>("__provisioningData");
-                //var insertResult = collection.Insert(new ProvisioningData());
-
+                catch(ArgumentNullException)
+                {
+                    port = "27017";
+                }
+                var connectionString = string.Format(
+                    "mongodb://{0}:{1}",
+                    _request.Manifest.ProvisioningLocation,
+                    port);
+                var client = new MongoClient(connectionString);
+                var databaseName = GetDatabaseName(_request.Manifest, parameters);
+                var database = client.GetDatabase(databaseName);
+                // creates a new database. note - the database will not be created until something is written to it
                 var newCollection = database.GetCollection<ProvisioningData>("__provisioningData");
-                var newInsertResult = newCollection.Insert(new ProvisioningData());
-
-                if (newInsertResult.Ok)
-                {
-                    // Set the connection string that the app will use.
-                    // This connection string includes the username and password given for this instance.
-                    result.ConnectionData = string.Format("mongodb://{0}:{1}@{2}/{3}", manifest.ProvisioningUsername, manifest.ProvisioningPassword, manifest.ProvisioningLocation, databaseName);
-                    result.IsSuccess = true;
-                }
-                else
-                {
-                    result.IsSuccess = false;
-                    result.EndUserMessage = string.Format("There was an error provisioning the database:{0}{1}", Environment.NewLine, newInsertResult.ErrorMessage);
-                }
+                newCollection.InsertOne(new ProvisioningData());
+                var document = this.CreateUserAdd(parameters.Username, parameters.Password);
+                database.RunCommand<BsonDocument>(document);
+                // Set the connection string that the app will use.
+                // This connection string includes the username and password given for this instance.
+                result.ConnectionData = string.Format("mongodb://{0}:{1}@{2}:{3}/{4}", _request.Manifest.ProvisioningUsername, _request.Manifest.ProvisioningPassword, _request.Manifest.ProvisioningLocation, port, databaseName);
+                result.IsSuccess = true;
             }
             catch (MongoException mongoException)
             {
@@ -101,15 +80,31 @@ namespace Apprenda.AddOns.MongoDB
             return result;
         }
 
-        public OperationResult Deprovision(AddonManifest manifest, string connectionData)
+        public override OperationResult Deprovision(AddonDeprovisionRequest _request)
         {
             var result = new OperationResult() { IsSuccess = false };
-
+            string port;
             try
             {
-                var server = GetServer(manifest);
-                var database = server.GetDatabase(GetDatabaseName(manifest));
-                database.Drop();
+                port = _request.Manifest.Properties.Find(_x => _x.Key.Equals("port")).Value;
+            }
+            catch (ArgumentNullException)
+            {
+                port = "27017";
+            }
+            try
+            {
+                var parameters = DeveloperParameters.Parse(_request.DeveloperParameters, _request.Manifest.Properties);
+                var connectionString = string.Format(
+                    "mongodb://{0}:{1}",
+                    _request.Manifest.ProvisioningLocation,
+                    port);
+                var client = new MongoClient(connectionString);
+                var name = GetDatabaseName(_request.Manifest, parameters);
+                var db = client.GetDatabase(name);
+                var drop = DropUser(parameters.Username);
+                db.RunCommand<BsonDocument>(drop);
+                client.DropDatabase(name);
                 result.IsSuccess = true;
             }
             catch (MongoException mongoException)
@@ -126,64 +121,56 @@ namespace Apprenda.AddOns.MongoDB
             return result;
         }
 
-        public OperationResult Test(AddonManifest manifest, string developerOptions)
+        public override OperationResult Test(AddonTestRequest _request)
         {
             // NOTE: Any exceptions thrown out of any add-on method will result in a failure of the operation.
             //       The full-depth exception from inside the add-on will get logged in the SOC, but if you
             //       wish to display a more user-friendly message in the report card format then you need to
             //       handle exceptions manually inside the add-on implementation.
 
-            var results = new OperationResult();
-
+            var result = new OperationResult() { IsSuccess = false };
+            string port;
             try
             {
-                var server = GetServer(manifest);
-
-                if (server == null)
-                {
-                    results.EndUserMessage = "Unable to connect to the server using the information from the add-on manifest.";
-                    return results;
-                }
+                port = _request.Manifest.Properties.Find(_x => _x.Key.Equals("port")).Value;
+            }
+            catch (ArgumentNullException)
+            {
+                port = "27017";
+            }
+            try
+            {
+                var parameters = DeveloperParameters.Parse(_request.DeveloperParameters, _request.Manifest.Properties);
+                var connectionString = string.Format(
+                    "mongodb://{0}:{1}",
+                    _request.Manifest.ProvisioningLocation,
+                    port);
+                var client = new MongoClient(connectionString);
 
                 // Create a DB and add a collection to make sure the MongoDB instance is configured correctly.
-                var database = server.GetDatabase("test");
+                var database = client.GetDatabase("test");
                 var collection = database.GetCollection<TestObject>("testObjects");
-                var insertResult = collection.Insert(new TestObject { Value = "test" });
-                database.Drop();
-
-                if (insertResult.Ok)
-                {
-                    results.IsSuccess = true;
-                }
-                else
-                {
-                    results.EndUserMessage = insertResult.ErrorMessage;
-                }
+                collection.InsertOne(new TestObject { Value = "test" });
+                client.DropDatabase("test");
+                result.IsSuccess = true;
             }
             catch (MongoException mongoException)
             {
                 Logger.ErrorFormat("Error occurred during testing: {0} \n {1}", mongoException.Message, mongoException.StackTrace);
-                results.EndUserMessage = mongoException.Message;
+                result.EndUserMessage = mongoException.Message;
             }
             catch (Exception mongoException)
             {
                 Logger.ErrorFormat("Error occurred during testing: {0} \n {1}", mongoException.Message, mongoException.StackTrace);
-                results.EndUserMessage = mongoException.Message;
+                result.EndUserMessage = mongoException.Message;
             }
 
-            return results;
+            return result;
         }
 
-        private static MongoServer GetServer(AddonManifest manifest)
+        private static string GetDatabaseName(AddonManifest manifest, DeveloperParameters p)
         {
-            var connectionString = string.Format("mongodb://{0}(admin):{1}@{2}", manifest.ProvisioningUsername, manifest.ProvisioningPassword, manifest.ProvisioningLocation);
-            var client = new MongoClient(connectionString);
-            return client.GetServer();
-        }
-
-        private static string GetDatabaseName(AddonManifest manifest)
-        {
-            return string.Format("{0}-{1}", manifest.CallingDeveloperAlias, manifest.InstanceAlias);
+            return p.Database != null ? string.Format("{0}", p.Database) : string.Format("{0}-{1}", manifest.CallingDeveloperAlias, manifest.InstanceAlias);
         }
 
         private class TestObject
@@ -201,19 +188,44 @@ namespace Apprenda.AddOns.MongoDB
             public DateTime ProvisionTime { get; set; }
         }
 
-        public override OperationResult Deprovision(AddonDeprovisionRequest request)
+        private BsonDocument CreateUserAdd(string username, string password)
         {
-            return Deprovision(request.Manifest, request.ConnectionData);
+            // Construct the createUser command.
+            var writeConcern = WriteConcern.WMajority
+                .With(wTimeout: TimeSpan.FromMilliseconds(5000));
+            var command = new BsonDocument
+            {
+                { "createUser", username },
+                { "pwd", password },
+                { "roles", new BsonArray
+                    {
+                        new BsonDocument
+                        {
+                            { "role", "clusterAdmin" },
+                            { "db", "admin" }   
+                        },
+                        new BsonDocument
+                        {
+                            { "role", "readAnyDatabase" },
+                            { "db", "admin" }   
+                        },
+                        "readWrite"
+                    }},
+                { "writeConcern", writeConcern.ToBsonDocument() }
+            };
+            return command;
         }
 
-        public override ProvisionAddOnResult Provision(AddonProvisionRequest request)
+        private BsonDocument DropUser(string username)
         {
-            return Provision(request.Manifest, request.DeveloperOptions);
-        }
-
-        public override OperationResult Test(AddonTestRequest request)
-        {
-            return Test(request.Manifest, request.DeveloperOptions);
+            var writeConcern = WriteConcern.WMajority
+                .With(wTimeout: TimeSpan.FromMilliseconds(5000));
+            var command = new BsonDocument
+            {
+                { "dropUser", username },
+                { "writeConcern", writeConcern.ToBsonDocument() }
+            };
+            return command;
         }
     }
 }
