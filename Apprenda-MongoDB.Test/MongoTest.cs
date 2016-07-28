@@ -70,7 +70,7 @@
             var port = new AddonProperty
                             {
                                 Key = "port",
-                                Value = "32772"
+                                Value = "32770"
                             };
             var manifest = new AddonManifest
             {
@@ -90,7 +90,7 @@
                     Items = plist.ToArray()
                 },
                 Properties = new List<AddonProperty>(),                                 
-                ProvisioningLocation = "docker",
+                ProvisioningLocation = "54.167.117.101",
                 ProvisioningPassword = "admin",
                 ProvisioningPasswordHasValue = false,
                 ProvisioningUsername = "admin",
@@ -129,26 +129,21 @@
         }
 
         [Test]
-        public void ProvisionTest()
+        public void ProvisioningTest()
         {
             this.ProvisionRequest = new AddonProvisionRequest { Manifest = SetupPropertiesAndParameters(), DeveloperParameters = SetUpParameters()};
             var output = new MongoDbAddOn().Provision(this.ProvisionRequest);
             Assert.That(output, Is.TypeOf<ProvisionAddOnResult>());
             Assert.That(output.IsSuccess, Is.EqualTo(true));
             Assert.That(output.ConnectionData.Length, Is.GreaterThan(0));
-        }
-
-        [Test]
-        public void DeProvisionTest()
-        {
             this.DeprovisionRequest = new AddonDeprovisionRequest()
                                           {
                                               Manifest = SetupPropertiesAndParameters(),
                                               DeveloperParameters = SetUpParameters()
                                           };
-            var output = new MongoDbAddOn().Deprovision(this.DeprovisionRequest);
-            Assert.That(output, Is.TypeOf<OperationResult>());
-            Assert.That(output.IsSuccess, Is.EqualTo(true));
+            var de_output = new MongoDbAddOn().Deprovision(this.DeprovisionRequest);
+            Assert.That(de_output, Is.TypeOf<OperationResult>());
+            Assert.That(de_output.IsSuccess, Is.EqualTo(true));
         }
 
         [Test]

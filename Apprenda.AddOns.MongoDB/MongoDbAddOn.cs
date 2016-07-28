@@ -48,18 +48,22 @@ namespace Apprenda.AddOns.MongoDB
                 {
                     port = "27017";
                 }
-                var connectionString = string.Format(
-                    "mongodb://{0}:{1}",
-                    _request.Manifest.ProvisioningLocation,
-                    port);
+                var connectionString = string.Format("mongodb://{0}:{1}", _request.Manifest.ProvisioningLocation, port);
+
+                // var connectionString = string.Format(
+                //    "mongodb://{0}:{1}@{2}:{3}", _request.Manifest.ProvisioningUsername,
+                //    _request.Manifest.ProvisioningPassword,
+                //    _request.Manifest.ProvisioningLocation,
+                //    port);
                 var client = new MongoClient(connectionString);
                 var databaseName = GetDatabaseName(_request.Manifest, parameters);
                 var database = client.GetDatabase(databaseName);
+                var document = CreateUserAdd(parameters.Username, parameters.Password, databaseName);
+                database.RunCommand<BsonDocument>(document);
                 // creates a new database. note - the database will not be created until something is written to it
                 var newCollection = database.GetCollection<ProvisioningData>("__provisioningData");
                 newCollection.InsertOne(new ProvisioningData());
-                var document = this.CreateUserAdd(parameters.Username, parameters.Password);
-                database.RunCommand<BsonDocument>(document);
+                
                 // Set the connection string that the app will use.
                 // This connection string includes the username and password given for this instance.
                 result.ConnectionData = string.Format("mongodb://{0}:{1}@{2}:{3}/{4}", _request.Manifest.ProvisioningUsername, _request.Manifest.ProvisioningPassword, _request.Manifest.ProvisioningLocation, port, databaseName);
@@ -188,7 +192,7 @@ namespace Apprenda.AddOns.MongoDB
             public DateTime ProvisionTime { get; set; }
         }
 
-        private BsonDocument CreateUserAdd(string username, string password)
+        private BsonDocument CreateUserAdd(string username, string password, string db)
         {
             // Construct the createUser command.
             var writeConcern = WriteConcern.WMajority
@@ -201,13 +205,8 @@ namespace Apprenda.AddOns.MongoDB
                     {
                         new BsonDocument
                         {
-                            { "role", "clusterAdmin" },
-                            { "db", "admin" }   
-                        },
-                        new BsonDocument
-                        {
-                            { "role", "readAnyDatabase" },
-                            { "db", "admin" }   
+                            { "role", "dbOwner" },
+                            { "db", db }   
                         },
                         "readWrite"
                     }},
