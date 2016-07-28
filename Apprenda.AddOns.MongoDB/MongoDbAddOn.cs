@@ -63,10 +63,11 @@ namespace Apprenda.AddOns.MongoDB
                 // creates a new database. note - the database will not be created until something is written to it
                 var newCollection = database.GetCollection<ProvisioningData>("__provisioningData");
                 newCollection.InsertOne(new ProvisioningData());
-                
+
                 // Set the connection string that the app will use.
                 // This connection string includes the username and password given for this instance.
-                result.ConnectionData = string.Format("mongodb://{0}:{1}@{2}:{3}/{4}", _request.Manifest.ProvisioningUsername, _request.Manifest.ProvisioningPassword, _request.Manifest.ProvisioningLocation, port, databaseName);
+                //result.ConnectionData = string.Format("mongodb://{0}:{1}@{2}:{3}/{4}", _request.Manifest.ProvisioningUsername, _request.Manifest.ProvisioningPassword, _request.Manifest.ProvisioningLocation, port, databaseName);
+                result.ConnectionData = string.Format("mongodb://{0}:{1}/{2}", _request.Manifest.ProvisioningLocation, port, databaseName);
                 result.IsSuccess = true;
             }
             catch (MongoException mongoException)
