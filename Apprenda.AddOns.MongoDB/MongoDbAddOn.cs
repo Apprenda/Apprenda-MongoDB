@@ -1,14 +1,11 @@
 ﻿using Apprenda.SaaSGrid.Addons;
 using Apprenda.Services.Logging;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 
 namespace Apprenda.AddOns.MongoDB
 {
-    using Apprenda.SaaSGrid.Manifest;
-
-    using global::MongoDB.Bson;
-
     public class MongoDbAddOn : AddonBase
     {
         private static readonly ILogger Logger = LogManager.Instance().GetLogger(typeof(MongoDbAddOn));
@@ -39,7 +36,7 @@ namespace Apprenda.AddOns.MongoDB
             var result = new ProvisionAddOnResult("", false, "");
             try
             {
-                string port;
+                string port, connectionString;
                 try
                 {
                     port = _request.Manifest.Properties.Find(_x => _x.Key.Equals("port")).Value;
@@ -48,25 +45,32 @@ namespace Apprenda.AddOns.MongoDB
                 {
                     port = "27017";
                 }
-                var connectionString = string.Format("mongodb://{0}:{1}", _request.Manifest.ProvisioningLocation, port);
-
-                // var connectionString = string.Format(
-                //    "mongodb://{0}:{1}@{2}:{3}", _request.Manifest.ProvisioningUsername,
-                //    _request.Manifest.ProvisioningPassword,
-                //    _request.Manifest.ProvisioningLocation,
-                //    port);
+                if (_request.Manifest.ProvisioningUsername.Equals("admin") && !(_request.Manifest.ProvisioningPasswordHasValue))
+                {
+                    connectionString = string.Format("mongodb://{0}:{1}", _request.Manifest.ProvisioningLocation, port);
+                }
+                else
+                {
+                    connectionString = string.Format(
+                        "mongodb://{0}:{1}@{2}:{3}", _request.Manifest.ProvisioningUsername,
+                        _request.Manifest.ProvisioningPassword,
+                        _request.Manifest.ProvisioningLocation,
+                        port);
+                }
                 var client = new MongoClient(connectionString);
                 var databaseName = GetDatabaseName(_request.Manifest, parameters);
+                var cred = MongoCredential.CreateMongoCRCredential(databaseName, _request.Manifest.ProvisioningUsername, _request.Manifest.ProvisioningPassword);
                 var database = client.GetDatabase(databaseName);
                 var document = CreateUserAdd(parameters.Username, parameters.Password, databaseName);
                 database.RunCommand<BsonDocument>(document);
                 // creates a new database. note - the database will not be created until something is written to it
                 var newCollection = database.GetCollection<ProvisioningData>("__provisioningData");
                 newCollection.InsertOne(new ProvisioningData());
-                
+
                 // Set the connection string that the app will use.
                 // This connection string includes the username and password given for this instance.
-                result.ConnectionData = string.Format("mongodb://{0}:{1}@{2}:{3}/{4}", _request.Manifest.ProvisioningUsername, _request.Manifest.ProvisioningPassword, _request.Manifest.ProvisioningLocation, port, databaseName);
+                //result.ConnectionData = string.Format("mongodb://{0}:{1}@{2}:{3}/{4}", _request.Manifest.ProvisioningUsername, _request.Manifest.ProvisioningPassword, _request.Manifest.ProvisioningLocation, port, databaseName);
+                result.ConnectionData = string.Format("mongodb://{0}:{1}/{2}", _request.Manifest.ProvisioningLocation, port, databaseName);
                 result.IsSuccess = true;
             }
             catch (MongoException mongoException)
