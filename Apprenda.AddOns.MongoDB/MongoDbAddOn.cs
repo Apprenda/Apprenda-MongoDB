@@ -58,8 +58,8 @@ namespace Apprenda.AddOns.MongoDB
                 var client = new MongoClient(connectionString);
                 var databaseName = GetDatabaseName(_request.Manifest, parameters);
                 var database = client.GetDatabase(databaseName);
-                var document = CreateUserAdd(parameters.Username, parameters.Password, databaseName);
-                database.RunCommand<BsonDocument>(document);
+                // var document = CreateUserAdd(parameters.Username, parameters.Password, databaseName);
+                // database.RunCommand<BsonDocument>(document);
                 // creates a new database. note - the database will not be created until something is written to it
                 var newCollection = database.GetCollection<ProvisioningData>("__provisioningData");
                 newCollection.InsertOne(new ProvisioningData());
@@ -107,8 +107,8 @@ namespace Apprenda.AddOns.MongoDB
                 var client = new MongoClient(connectionString);
                 var name = GetDatabaseName(_request.Manifest, parameters);
                 var db = client.GetDatabase(name);
-                var drop = DropUser(parameters.Username);
-                db.RunCommand<BsonDocument>(drop);
+                // var drop = DropUser(parameters.Username);
+                // db.RunCommand<BsonDocument>(drop);
                 client.DropDatabase(name);
                 result.IsSuccess = true;
             }

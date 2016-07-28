@@ -17,7 +17,7 @@
     <property key="port" value="32770" displayName="Port" description="Use this to override the default port (27017)"/>
   </properties>
   <parameters allowUserDefinedParameters="false">
-    <parameter key="username" displayName="Username" description="Username for authentication into your database." />
-	  <parameter key="password" displayName="Password" description="Password for authenticating into your database." isEncrypted="true"/>
+    <!--<parameter key="username" displayName="Username" description="Username for authentication into your database." />
+	  <parameter key="password" displayName="Password" description="Password for authenticating into your database." isEncrypted="true"/>-->
   </parameters>
 </addonManifest>

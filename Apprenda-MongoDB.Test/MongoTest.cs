@@ -29,6 +29,7 @@
         {
             var paramConstructor = new List<AddonParameter>
             {
+                /*
                 new AddonParameter
                 {
                     Key = "username",
@@ -39,6 +40,7 @@
                     Key = "password",
                     Value = ConfigurationManager.AppSettings["password"]
                 },
+                */
                 new AddonParameter
                 {
                     Key = "database",
@@ -51,6 +53,7 @@
         private static AddonManifest SetupPropertiesAndParameters()
         {
             var plist = new List<DevParameter>();
+            /*
             plist.Add(new DevParameter()
                           {
                               Key = "username",
@@ -62,6 +65,7 @@
                               DisplayName = "Password",
                               IsEncrypted = true
                           });
+            */
             plist.Add(new DevParameter()
                           {
                               Key = "database",
@@ -105,7 +109,7 @@
         [Test]
         public void ClientTest()
         {
-
+            // TODO
         }
 
         [Test]
