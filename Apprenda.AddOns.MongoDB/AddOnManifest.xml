@@ -9,7 +9,7 @@
                developerHelp="When deploying a new MongoDB database you need to specify the credentials you want to use in your app to connect to this database.  These credentials should be passed in using the developerOptions argument in the following format: username=&lt;username&gt;,password=&lt;password&gt;"
                vendor="Apprenda"
                author="Chris Dutra"
-               version="3.1"
+               version="3.2"
                provisioningUsername="ApprendaAdmin"
                provisioningPassword="m0ng0Pa55"
                provisioningLocation="docker"
