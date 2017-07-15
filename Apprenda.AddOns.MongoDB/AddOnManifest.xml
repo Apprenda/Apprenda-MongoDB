@@ -13,7 +13,7 @@
                provisioningUsername="ApprendaAdmin"
                provisioningPassword="m0ng0Pa55"
                provisioningLocation="docker"
-	       manifestVersion="2">
+               manifestVersion="2">
   <properties>
     <property key="port" value="32770" displayName="Port" description="Use this to override the default port (27017)"/>
   </properties>
