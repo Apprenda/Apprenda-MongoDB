@@ -8,8 +8,9 @@ This is the repository that includes all the details to integrate Apprenda with 
 
 ## Integration Steps, Setting up the Apprenda Add-On in the Apprenda Operator Portal
 - Use the provided Apprenda.AddOns.MongoDB.zip to upload the Add-On to the Apprenda SOC (aka Operator Portal). You can alternatively build or enhance the provided Visual Studio solution file to create an Add-On that meets your needs.
-- Once the Add-On is uploaded in Apprenda, edit it and visit the "Configuration" tab
+- Once the Add-On is uploaded in Apprenda, edit it 
 - This add-on assumes that you already have a MongoDB instace running, configured with authentication, and one admin user. The admin username and password are needed to create client databases. 
+- The location field in the "General" tab should be the host location of the MongoDB instance. For example mymongodb.cloudapps.net. The default port 27017 is attached to the location when connecting to the MongoDB database. If you want to override the port, visit the "Configuration" tab and update the Port field
 - Save the Add-On
 - You can learn more about Add-Ons at http://docs.apprenda.com/7-0/addons
 
