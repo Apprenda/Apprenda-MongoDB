@@ -48,13 +48,11 @@ namespace Apprenda.AddOns.MongoDB
                 {
                     port = "27017";
                 }
-                var connectionString = string.Format("mongodb://{0}:{1}", _request.Manifest.ProvisioningLocation, port);
-
-                // var connectionString = string.Format(
-                //    "mongodb://{0}:{1}@{2}:{3}", _request.Manifest.ProvisioningUsername,
-                //    _request.Manifest.ProvisioningPassword,
-                //    _request.Manifest.ProvisioningLocation,
-                //    port);
+                //var connectionString = string.Format("mongodb://{0}:{1}", _request.Manifest.ProvisioningLocation, port);
+                var connectionString = GetConnectionString(_request.Manifest.ProvisioningLocation, 
+                    port, 
+                    _request.Manifest.ProvisioningUsername, 
+                    _request.Manifest.ProvisioningPassword);
                 var client = new MongoClient(connectionString);
                 var databaseName = GetDatabaseName(_request.Manifest, parameters);
                 var database = client.GetDatabase(databaseName);
@@ -66,8 +64,8 @@ namespace Apprenda.AddOns.MongoDB
 
                 // Set the connection string that the app will use.
                 // This connection string includes the username and password given for this instance.
-                //result.ConnectionData = string.Format("mongodb://{0}:{1}@{2}:{3}/{4}", _request.Manifest.ProvisioningUsername, _request.Manifest.ProvisioningPassword, _request.Manifest.ProvisioningLocation, port, databaseName);
-                result.ConnectionData = string.Format("mongodb://{0}:{1}/{2}", _request.Manifest.ProvisioningLocation, port, databaseName);
+                result.ConnectionData = GetConnectionString(_request.Manifest.ProvisioningLocation, port, parameters.Username, parameters.Password, databaseName);
+                //result.ConnectionData = string.Format("mongodb://{0}:{1}/{2}", _request.Manifest.ProvisioningLocation, port, databaseName);
                 result.IsSuccess = true;
             }
             catch (MongoException mongoException)
@@ -87,6 +85,7 @@ namespace Apprenda.AddOns.MongoDB
 
         public override OperationResult Deprovision(AddonDeprovisionRequest _request)
         {
+
             var result = new OperationResult() { IsSuccess = false };
             string port;
             try
@@ -100,16 +99,13 @@ namespace Apprenda.AddOns.MongoDB
             try
             {
                 var parameters = DeveloperParameters.Parse(_request.DeveloperParameters, _request.Manifest.Properties);
-                var connectionString = string.Format(
-                    "mongodb://{0}:{1}",
-                    _request.Manifest.ProvisioningLocation,
-                    port);
+                var connectionString = _request.ConnectionData;
                 var client = new MongoClient(connectionString);
                 var name = GetDatabaseName(_request.Manifest, parameters);
                 var db = client.GetDatabase(name);
+                client.DropDatabase(name);
                 var drop = DropUser(parameters.Username);
                 db.RunCommand<BsonDocument>(drop);
-                client.DropDatabase(name);
                 result.IsSuccess = true;
             }
             catch (MongoException mongoException)
@@ -146,16 +142,24 @@ namespace Apprenda.AddOns.MongoDB
             try
             {
                 var parameters = DeveloperParameters.Parse(_request.DeveloperParameters, _request.Manifest.Properties);
-                var connectionString = string.Format(
-                    "mongodb://{0}:{1}",
-                    _request.Manifest.ProvisioningLocation,
-                    port);
+                var connectionString = GetConnectionString(_request.Manifest.ProvisioningLocation,
+                    port,
+                    _request.Manifest.ProvisioningUsername,
+                    _request.Manifest.ProvisioningPassword);
+
                 var client = new MongoClient(connectionString);
 
                 // Create a DB and add a collection to make sure the MongoDB instance is configured correctly.
                 var database = client.GetDatabase("test");
+                //create user
+                var document = CreateUserAdd(parameters.Username, parameters.Password, "test");
+                database.RunCommand<BsonDocument>(document);
+                //create collection
                 var collection = database.GetCollection<TestObject>("testObjects");
                 collection.InsertOne(new TestObject { Value = "test" });
+                //delete user
+                DropUser(parameters.Username);
+                //delete database
                 client.DropDatabase("test");
                 result.IsSuccess = true;
             }
@@ -226,6 +230,26 @@ namespace Apprenda.AddOns.MongoDB
                 { "writeConcern", writeConcern.ToBsonDocument() }
             };
             return command;
+        }
+
+        private string GetConnectionString(string location, string port, string user = null, string password = null, string database = "")
+        {
+            var connectionString = "";
+            if(string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
+            {
+                //no username/pw provided -- don't use authentication
+                connectionString = string.Format("mongodb://{0}:{1}/{2}", location, port, database);
+            }
+            else
+            {
+                //use authentication
+                if (string.IsNullOrWhiteSpace(database))
+                {
+                    database = "admin";
+                }
+                connectionString = string.Format("mongodb://{0}:{1}@{2}:{3}/{4}", user, password, location, port, database);
+            }
+            return connectionString;
         }
     }
 }
