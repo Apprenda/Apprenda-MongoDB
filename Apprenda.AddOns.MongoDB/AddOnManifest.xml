@@ -5,20 +5,20 @@
                xsi:schemaLocation="http://schemas.apprenda.com/AddonManifest http://apprenda.com/schemas/platform/6.0/AddonManifest.xsd"
                name="MongoDB"
                description="Provides MongoDB databases scoped to a development team."
-               deploymentNotes="This add-on assumes that you already have a MongoDB instace running, configured with authentication, and one admin user.  The admin username and password are needed to create client databases.  The location field should be the host and port of the MongoDB instance.  ex) hostname:12345"
+               deploymentNotes="This add-on assumes that you already have a MongoDB instance running. If authentication is enabled, an admin username and password are needed to create client databases, otherwise they should be left blank.  The location field should be the hostname/ip of the MongoDB instance. In configuration you can set the port, otherwise the default port of 27017 will be used."
                developerHelp="When deploying a new MongoDB database you need to specify the credentials you want to use in your app to connect to this database.  These credentials should be passed in using the developerOptions argument in the following format: username=&lt;username&gt;,password=&lt;password&gt;"
                vendor="Apprenda"
-               author="Chris Dutra"
-               version="3.2"
-               provisioningUsername="ApprendaAdmin"
-               provisioningPassword="m0ng0Pa55"
-               provisioningLocation="docker"
+               author="Jazmine Olinger"
+               version="3.3"
+               provisioningUsername=""
+               provisioningPassword=""
+               provisioningLocation=""
                manifestVersion="2">
   <properties>
-    <property key="port" value="32770" displayName="Port" description="Use this to override the default port (27017)"/>
+    <property key="port" value="27017" displayName="Port" description="Use this to override the default port (27017)"/>
   </properties>
   <parameters allowUserDefinedParameters="false">
-    <parameter key="username" displayName="Username" description="Username for authentication into your database." />
-	  <parameter key="password" displayName="Password" description="Password for authenticating into your database." isEncrypted="true"/>
+    <parameter key="username" displayName="Username" description="Username for authentication into your new database." />
+	  <parameter key="password" displayName="Password" description="Password for authenticating into your new database." isEncrypted="true"/>
   </parameters>
 </addonManifest>
