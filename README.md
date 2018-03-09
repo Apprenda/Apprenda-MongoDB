@@ -4,14 +4,13 @@ This is the repository that includes all the details to integrate Apprenda with 
 ## Code Repository
 - Apprenda.AddOns.MongoDB, the complete source code for the implementation of the AddOn
 - Apprenda-MongoDB.Test, a test framework to validate this integration
-- Apprenda.AddOns.MongoDB.zip, the zipped file that can be uploaded to the Apprenda Operator Portal (SOC) to enable the MongoDB AddOn
 
 ## Integration Steps, Setting up the Apprenda Add-On in the Apprenda Operator Portal
 
 ### Configuring Your MongoDB Instance ###
 - This add-on assumes you have a MongoDB instance running. To get your MongoDB instance up and running please refer to [these tutorials](https://docs.mongodb.com/manual/installation/#tutorials) and choose the appropriate one for your OS and version of MongoDB.
 #### Authenication ####
-- By default your MongoDB instance will have authentication turned off. You can use this addon with or without authentication. If you would like to use authentication keep reading below, otherwise continue to the next section.
+- By default your MongoDB instance will have authentication turned off. You can use this add-on with or without authentication. If you would like to use authentication keep reading below, otherwise continue to the next section.
 - To turn on authentication, first create an admin user with full privileges. You can do this from MongoDB shell with the following command: 
 ```
 use admin
@@ -28,7 +27,7 @@ auth = true
 ```
 - If you don't have already have configuration file, create a file with the line above, save it as mongod.conf, and restart your MongoDB instance with this file in the --config option.
 ```
-	mongod --config /etc/mongdb.conf
+	mongod --config /etc/mongd.conf
 ```
 - Remember this username and password for use in the Add-On later.
 - Save your config file and restart your MongoDB instance
@@ -45,7 +44,7 @@ bind_ip = [216.58.216.164, 69.89.31.226]
 - Save your config file and restart your MongoDB instance.
 
 ### Configure the Add-On ###
-- Use the provided Apprenda.AddOns.MongoDB.zip to upload the Add-On to the Apprenda SOC (aka Operator Portal). You can alternatively build or enhance the provided Visual Studio solution file to create an Add-On that meets your needs.
+- Use the provided packaged Add-On, Apprenda.AddOns.MongoDB.zip, [found here](https://github.com/apprenda/Apprenda-MongoDB/releases/tag/v2.0) to upload the Add-On to the Apprenda SOC (aka Operator Portal). You can alternatively build or enhance the provided Visual Studio solution file to create an Add-On that meets your needs.
 - Once the Add-On has uploaded, click on edit. 
 - The location field in the "General" tab should be the host location of the MongoDB instance. For example mymongodb.cloudapps.net.
 - The username and password fields in the "General" tab require the username and password of the user you created above, *if* authentication is enable. If you are not using authentication, leave these fields blank.
@@ -62,7 +61,8 @@ bind_ip = [216.58.216.164, 69.89.31.226]
 - Click on apply
 - Once provisioning has complete you can verify the existence of the new database and corresponding user through your MongoDB shell
 - You can connect to this new database using the Connection Data provided
+- You can token switch the Add-On instance into your app so you can use your MongoDB instances inside your Apprenda application
 - When you deprovision this instance, the new database, anything in it, and the new user will be deleted from your MongoDB instance
 
-**Congratulations, you have just integrated the Apprenda Cloud Platform with the MongoDB AddOn**
+**Congratulations, you have just integrated the Apprenda Cloud Platform with the MongoDB Add-On**
 - You can learn more about Add-Ons at http://docs.apprenda.com/7-0/addons
